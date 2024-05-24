@@ -13,6 +13,10 @@ from pathlib import Path
 from tqdm.auto import tqdm
 import numpy as np
 import openai
+from openai import OpenAI
+openai.api_key = os.environ.get("OPENAI_API_KEY", None)
+from openai import AzureOpenAI
+
 import tiktoken
 from anthropic import HUMAN_PROMPT, AI_PROMPT, Anthropic
 from tenacity import (
@@ -28,6 +32,15 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 dotenv.load_dotenv()
+
+
+
+# client = AzureOpenAI(api_key=openai.api_key,
+# azure_endpoint="https://pnlpopenai3.openai.azure.com/",
+# api_version="2023-05-15")
+
+client = OpenAI(api_key= openai.api_key,  base_url="https://api.openai.com/v1/")
+
 
 MODEL_LIMITS = {
     "claude-instant-1": 100_000,
@@ -111,7 +124,7 @@ def calc_cost(model_name, input_tokens, output_tokens):
 
 
 @retry(wait=wait_random_exponential(min=30, max=600), stop=stop_after_attempt(3))
-def call_chat(model_name_or_path, inputs, use_azure, temperature, top_p, **model_args):
+def call_chat(model_name_or_path, inputs, temperature, top_p, **model_args):
     """
     Calls the openai API to generate completions for the given inputs.
 
@@ -125,39 +138,18 @@ def call_chat(model_name_or_path, inputs, use_azure, temperature, top_p, **model
     """
     system_messages = inputs.split("\n", 1)[0]
     user_message = inputs.split("\n", 1)[1]
-    try:
-        if use_azure:
-            response = openai.ChatCompletion.create(
-                engine=ENGINES[model_name_or_path] if use_azure else None,
-                messages=[
-                    {"role": "system", "content": system_messages},
-                    {"role": "user", "content": user_message},
-                ],
-                temperature=temperature,
-                top_p=top_p,
-                **model_args,
-            )
-        else:
-            response = openai.ChatCompletion.create(
-                model=model_name_or_path,
-                messages=[
-                    {"role": "system", "content": system_messages},
-                    {"role": "user", "content": user_message},
-                ],
-                temperature=temperature,
-                top_p=top_p,
-                **model_args,
-            )
-        input_tokens = response.usage.prompt_tokens
-        output_tokens = response.usage.completion_tokens
-        cost = calc_cost(response.model, input_tokens, output_tokens)
-        return response, cost
-    except openai.error.InvalidRequestError as e:
-        if e.code == "context_length_exceeded":
-            print("Context length exceeded")
-            return None
-        raise e
-
+    response = client.chat.completions.create(model=model_name_or_path,
+        messages=[
+            {"role": "system", "content": system_messages},
+            {"role": "user", "content": user_message},
+        ],
+        temperature=temperature,
+        top_p=top_p,
+        **model_args)
+    input_tokens = response.usage.prompt_tokens
+    output_tokens = response.usage.completion_tokens
+    cost = calc_cost(response.model, input_tokens, output_tokens)
+    return response, cost
 
 def gpt_tokenize(string: str, encoding) -> int:
     """Returns the number of tokens in a text string."""
@@ -201,13 +193,8 @@ def openai_inference(
         raise ValueError(
             "Must provide an api key. Expected in OPENAI_API_KEY environment variable."
         )
-    openai.api_key = openai_key
     print(f"Using OpenAI key {'*' * max(0, len(openai_key)-5) + openai_key[-5:]}")
-    use_azure = model_args.pop("use_azure", False)
-    if use_azure:
-        openai.api_type = "azure"
-        openai.api_base = "https://pnlpopenai3.openai.azure.com/"
-        openai.api_version = "2023-05-15"
+
     temperature = model_args.pop("temperature", 0.2)
     top_p = model_args.pop("top_p", 0.95 if temperature > 0 else 1)
     print(f"Using temperature={temperature}, top_p={top_p}")
@@ -227,11 +214,10 @@ def openai_inference(
             response, cost = call_chat(
                 output_dict["model_name_or_path"],
                 output_dict["text"],
-                use_azure,
                 temperature,
                 top_p,
             )
-            completion = response.choices[0]["message"]["content"]
+            completion = response.choices[0].message.content
             total_cost += cost
             print(f"Total Cost: {total_cost:.2f}")
             output_dict["full_output"] = completion
@@ -277,7 +263,7 @@ def call_anthropic(
         traceback.print_exc()
         time.sleep(20)
         return None
-    
+
 
 @retry(wait=wait_random_exponential(min=60, max=600), stop=stop_after_attempt(6))
 def call_anthropic_v2(
