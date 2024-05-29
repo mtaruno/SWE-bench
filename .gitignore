@@ -175,3 +175,7 @@ analysis/evaluation/*.csv
 analysis/evaluation/*.pdf
 data/repos/copies
 notebooks/
+
+
+# matt's eval runs
+inference/evaluate
