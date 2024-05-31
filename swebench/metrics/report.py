@@ -317,6 +317,7 @@ def get_model_report(
         "test_timeout": [],
         "resolved": [],
     }
+    
     for p in tqdm(predictions, desc="Processing predictions", disable=not verbose):
         # Check if the model patch exists
         if p["model_patch"] == None or len(p["model_patch"].strip()) == 0:

@@ -4,8 +4,8 @@ import requests
 import time
 
 from bs4 import BeautifulSoup
-from ghapi.core import GhApi
-from fastcore.net import HTTP404NotFoundError, HTTP403ForbiddenError
+# from ghapi.core import GhApi
+# from fastcore.net import HTTP404NotFoundError, HTTP403ForbiddenError
 from typing import Optional
 
 logging.basicConfig(
