@@ -1,9 +1,9 @@
 #!/bin/bash
-python run_evaluation.py \
-    --predictions_path "<path to predictions (.json)>" \
-    --swe_bench_tasks "<path to `swe-bench.json`>" \
-    --log_dir "<path to folder>" \
-    --testbed "<path to folder>" \
+python swebench/harness/run_evaluation.py \
+    --predictions_path "inference/outputs/gpt-4-0125-preview__SWE-bench_Lite_oracle__test.jsonl"  \
+    --swe_bench_tasks princeton-nlp/SWE-bench_Lite_oracle  \
+    --log_dir "inference/evaluate/run2/log_directory" \
+    --testbed "inference/evaluate/run2/testbed" \
     --skip_existing \
     --timeout 900 \
     --verbose

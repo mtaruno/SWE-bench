@@ -16,6 +16,7 @@ import openai
 from openai import OpenAI
 openai.api_key = os.environ.get("OPENAI_API_KEY", None)
 from openai import AzureOpenAI
+from zhipuai import ZhipuAI
 
 import tiktoken
 from anthropic import HUMAN_PROMPT, AI_PROMPT, Anthropic
@@ -34,13 +35,9 @@ logger = logging.getLogger(__name__)
 dotenv.load_dotenv()
 
 
-
-# client = AzureOpenAI(api_key=openai.api_key,
-# azure_endpoint="https://pnlpopenai3.openai.azure.com/",
-# api_version="2023-05-15")
-
-client = OpenAI(api_key= openai.api_key,  base_url="https://api.openai.com/v1/")
-
+# uncomment the following to do inference using OpenAI instead of Zhipu
+# client = OpenAI(api_key= openai.api_key,  base_url="https://api.openai.com/v1/")
+client = ZhipuAI(api_key="c61773dce745c19e8f36a739667d3f03.itPVpSuSrNf1YsyQ") # Fill in your own APIKey
 
 MODEL_LIMITS = {
     "claude-instant-1": 100_000,
@@ -55,6 +52,7 @@ MODEL_LIMITS = {
     "gpt-4-0613": 8_192,
     "gpt-4-1106-preview": 128_000,
     "gpt-4-0125-preview": 128_000,
+    "glm-4": 128_000
 }
 
 # The cost per token for each model input.
@@ -74,6 +72,7 @@ MODEL_COST_PER_INPUT = {
     "gpt-4-32k": 0.00006,
     "gpt-4-1106-preview": 0.00001,
     "gpt-4-0125-preview": 0.00001,
+    "glm-4": 0.0000015 # this isn't actually accurate i just want the model to run, use gpt-35-turbo one for the time being
 }
 
 # The cost per token for each model output.
@@ -93,13 +92,14 @@ MODEL_COST_PER_OUTPUT = {
     "gpt-4-32k": 0.00012,
     "gpt-4-1106-preview": 0.00003,
     "gpt-4-0125-preview": 0.00003,
+    "glm-4": 0.000002, # momentariliy using same as gpt-35-turbo
 }
 
 # used for azure
 ENGINES = {
     "gpt-3.5-turbo-16k-0613": "gpt-35-turbo-16k",
     "gpt-4-0613": "gpt-4",
-    "gpt-4-32k-0613": "gpt-4-32k",
+    "gpt-4-32k-0613": "gpt-4-32k","glm-4":"glm-4"
 }
 
 
@@ -488,6 +488,8 @@ def main(
     if model_name_or_path.startswith("claude"):
         anthropic_inference(**inference_args)
     elif model_name_or_path.startswith("gpt"):
+        openai_inference(**inference_args)
+    elif model_name_or_path.startswith("glm"):
         openai_inference(**inference_args)
     else:
         raise ValueError(f"Invalid model name or path {model_name_or_path}")

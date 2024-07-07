@@ -289,8 +289,12 @@ def get_model_report(
         report_map (dict): map of repo to report
     """
     eval_refs = get_eval_refs(swe_bench_tasks)
+
+
     for k, v in eval_refs.items():
         eval_refs[k] = {key: v[key] for key in [KEY_INSTANCE_ID, FAIL_TO_PASS, PASS_TO_PASS]}
+
+    print(len(eval_refs))
 
     # Get predictions
     predictions = []
@@ -302,6 +306,8 @@ def get_model_report(
         predictions = json.load(open(predictions_path))
     else:
         raise ValueError("Predictions file must be in json or jsonl format")
+    
+    print(len(predictions))
     report_map = {}
 
     # Iterate through predictions
@@ -324,9 +330,14 @@ def get_model_report(
             continue
         report_map["generated"].append(p[KEY_INSTANCE_ID])
 
+
+
         # Get log file
         log_path = os.path.join(log_dir, f"{p[KEY_INSTANCE_ID]}.{model}.eval.log")
+
+        print(log_path)
         if not os.path.exists(log_path):
+            print("WARNING: Log file does not exist")
             continue
         report_map["with_logs"].append(p[KEY_INSTANCE_ID])
         log_content = open(log_path).read()
