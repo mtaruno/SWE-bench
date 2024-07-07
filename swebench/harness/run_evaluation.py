@@ -10,7 +10,7 @@ import os
 import shutil
 import subprocess
 
-from datasets import load_dataset
+# from datasets import load_dataset
 from multiprocessing import Pool
 from swebench.harness.constants import (
     KEY_INSTANCE_ID,
